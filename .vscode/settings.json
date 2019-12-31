@@ -1,0 +1,5 @@
+{
+    "go.docsTool": "gogetdoc",
+    "go.autocompleteUnimportedPackages": true,
+    "go.gopath": "/home/ravi/gopath"
+}
