@@ -53,7 +53,7 @@ func main()  {
 	router := mux.NewRouter()
 	router.HandleFunc("/signup", signup).Methods("POST")
 	router.HandleFunc("/login", login).Methods("POST")
-	router.HandleFunc("protected", TokenVerifyMiddleWare(protectedEndpoint)).Methods("GET")
+	router.HandleFunc("/protected", TokenVerifyMiddleWare(protectedEndpoint)).Methods("GET")
 
 	log.Println("Listen on port 8000 ...")
 	log.Fatal(http.ListenAndServe(":8000", router))
@@ -182,6 +182,10 @@ func protectedEndpoint (w http.ResponseWriter, r *http.Request){
 }
 
 func TokenVerifyMiddleWare(next http.HandlerFunc) http.HandlerFunc {
-	fmt.Println("TokenVerifyrMiddleWare invoked")
-	return nil
+
+	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request){
+		//var errorObject Error
+		authHeader := r.Header.Get("Authorization")
+		fmt.Println(authHeader)
+	})
 }
