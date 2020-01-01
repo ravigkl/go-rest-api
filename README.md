@@ -8,3 +8,9 @@
 
 ##Setup the connectio with Elephant Postgres as follows:
 https://www.elephantsql.com/docs/go.html
+
+#sample login 
+{
+  "email": "test222@example.com",
+  "password": "abcd123"
+}

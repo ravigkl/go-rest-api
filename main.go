@@ -10,6 +10,8 @@ import (
 	"github.com/lib/pq"
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/dgrijalva/jwt-go"
+
 )
 
 //business models for application
@@ -68,6 +70,24 @@ func responseJSON(w http.ResponseWriter, data interface{}){
 	json.NewEncoder(w).Encode(data)
 }
 
+func GenerateToken(user User) (string, error){
+	var err error
+	secret := "mysecretkey"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email" : user.Email,
+		"iss" : "course",
+	})
+
+	tokenString, err := token.SignedString([]byte(secret))
+	
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return tokenString, nil
+
+}
+
 func signup(w http.ResponseWriter, r *http.Request){
 	var user User
 	var error Error
@@ -105,9 +125,55 @@ func signup(w http.ResponseWriter, r *http.Request){
 	responseJSON(w, user)
 	spew.Dump(user)	
 }
+
 func login(w http.ResponseWriter, r *http.Request){
-	fmt.Println("login invoked")
-	w.Write([]byte("successfully called login"))
+	var user User
+	var jwt JWT
+	var error Error
+	json.NewDecoder(r.Body).Decode(&user)
+	password := user.Password
+
+	if user.Email == "" {
+		error.Message = "Email is missing"
+		respondWithError(w, http.StatusBadRequest, error)
+		return
+	}
+	if user.Password == "" {
+		error.Message = "Password is missing"
+		respondWithError(w, http.StatusBadRequest, error)
+		return
+	}
+
+	row := db.QueryRow("select * from users where email=$1", user.Email)
+	err := row.Scan(&user.ID, &user.Email, &user.Password)
+	if err != nil {
+		if err == 	sql.ErrNoRows {
+			error.Message = "The user does not exist"
+			respondWithError(w, http.StatusBadRequest, error)
+			return
+		}else{
+			log.Fatal(err)
+		}
+
+	}
+	hashedPassword := user.Password
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+
+	if err != nil {
+		error.Message="Invalid password"
+		respondWithError(w, http.StatusBadRequest, error)
+		return
+	}
+
+	token, err := GenerateToken(user)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	jwt.Token = token
+	responseJSON(w, jwt)
 }
 
 func protectedEndpoint (w http.ResponseWriter, r *http.Request){
