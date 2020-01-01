@@ -5,13 +5,15 @@ import (
 	"net/http"
 	"log"
 	"fmt"
+	"os"
 	"strings"
 	"database/sql"
 	"encoding/json"
 	"github.com/lib/pq"
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/subosito/gotenv"
 
 )
 
@@ -30,9 +32,15 @@ type Error struct {
 }
 
 var db *sql.DB
+
+//load the environment variables at the program start
+func init() {
+	gotenv.Load()
+}
+
 func main()  {
 	//pgUrl, err := pq.ParseURL(os.Getenv("ELEPHANTSQL_URL"))
-	pgUrl, err := pq.ParseURL("postgres://ubdonwkq:4-38EnF3sbuKUbVGlptbCikADaOjlwcp@rajje.db.elephantsql.com:5432/ubdonwkq")
+	pgUrl, err := pq.ParseURL(os.Getenv("ELEPHANT_POSTGRES_URL"))
 
 	if err != nil {
 		log.Fatal(err)
@@ -73,7 +81,7 @@ func responseJSON(w http.ResponseWriter, data interface{}){
 
 func GenerateToken(user User) (string, error){
 	var err error
-	secret := "mysecretkey"
+	secret := os.Getenv("SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email" : user.Email,
 		"iss" : "course",
@@ -195,7 +203,7 @@ func TokenVerifyMiddleWare(next http.HandlerFunc) http.HandlerFunc {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("There was an error")
 				}
-				return []byte ("mysecretkey"), nil
+				return []byte (os.Getenv("SECRET")), nil
 			})
 			if error != nil {
 				errorObject.Message = error.Error()
